@@ -1,0 +1,44 @@
+# Conway's Game of Life is an algorithm that simulates the life of a group of cells
+# A cell can be either dead or alive, and the rules are the following:
+#     any live cell with fewer than two live neighbors dies (underpopulation)
+#     any live cell with two or three live neighbors lives on 
+#     any live cell with more than three live neighbors dies (overpopulation)
+#     any dead cell with three live neighbors becomes a live cell (reproduction)
+# The resulting patterns can be static, oscillating, or chaotic, and what fascinates me is that there is no way to predict, 
+# beforehands, if the game will reach a steady state or not
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def conway_step(c, neighb):
+    n, m = c.shape
+    neighb.fill(0)
+    # we compute neighbors by accumulation
+    for dx in [-1,0,1]:
+        x1, x2 = max(dx, 0), min(dx, 0)
+        for dy in [-1,0,1]:
+            y1, y2 = max(dy, 0), min(dy, 0)
+            if dx == 0 and dy == 0:
+                continue # we avoid the center
+            neighb[x1:(n+x2), y1:(m+y2)] += c[-x2:(n-x1), -y2:(m-y1)]
+    kill = (neighb < 2) | (neighb > 3)
+    generate = (neighb == 3)
+    c &= ~kill      # we only keep the non-killing regions
+    c |= generate   # we add the newborns (if not there already)
+
+
+def game_of_life(n, c=None, prob=0.4, pause=1e-3):
+    if c is None:
+        c = np.random.choice([0, 1], size=(n, n), p=[1-prob, prob])
+    neighb = np.zeros_like(c, dtype=int)
+    for i in range(n):
+        conway_step(c, neighb)
+        plt.clf()
+        plt.imshow(c)
+        plt.pause(pause)
+    #return c
+
+print(game_of_life(100))
+
