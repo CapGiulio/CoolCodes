@@ -1,0 +1,35 @@
+# This is an ancient algorithm that finds all the prime numbers up to any limit
+# The algorithm works by iteratively marking as composite (which is the opposite of prime) the multiples of each prime number
+# This makes it more efficient than the standard division algorithm for finding prime numbers  
+# After having found all the multiples of each discovered prime, the remaining unmarked numbers are necessarily primes
+# The implementation below is vectorized
+
+import numpy as np
+
+
+
+def sieve(n):
+    a = np.ones(n, dtype=bool)
+    a[0:2] = False
+    i = 2
+    while i <= int(np.sqrt(n-1))+1:
+        a[i**2::i] = False
+        i = np.argmax(a[i+1:]) + i + 1
+    return np.flatnonzero(a)
+
+print(sieve(2000))
+
+
+def sieve_slow(n):  # this version is clearer, but less efficient
+    a = [True for i in range(n)]
+    a[0:1] = [False, False]
+    i = 2
+    while i <= int((n-1)**0.5)+1:
+        for j in range(i**2, n, i):
+            a[j] = False
+        i += 1
+        while not a[i]:
+            i += 1
+    return [i for i in range(n) if a[i]]
+
+print(sieve_slow(2000))
