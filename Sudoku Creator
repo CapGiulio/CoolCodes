@@ -1,0 +1,122 @@
+# This code creates a valid Sudoku table of any given size
+# To be ran, it requires another function (like "greedy" or "simulated_annealing", which are saved in this same repository as other files)
+
+
+import numpy as np
+from copy import deepcopy
+
+def cost1(a):
+    return a.size - np.unique(a).size
+
+class SudokuCreator:
+    def __init__(self, n):
+        if not isinstance(n, int) or n <= 0 or not int(np.sqrt(n))**2 == n:
+            raise Exception("n must be a positive integer and an exact square")
+        self.table = np.arange(n).reshape(n,1) + np.zeros(n, dtype=int)
+        self.n = n
+        self.sn = int(np.sqrt(n))
+
+    def init_config(self):
+        n, table = self.n, self.table
+        for i in range(n):
+            np.random.shuffle(table[:,i])
+
+    def __repr__(self):
+        s = ""
+        n, sn, table = self.n, self.sn, self.table
+        pad = len(str(n-1)) 
+        for i in range(n):
+            if i > 0 and i % sn == 0:
+                for j in range(n):
+                    if j > 0 and j % sn == 0:
+                        s += "+-"
+                    s += "-" * (pad+1)
+                s += "\n"
+            for j in range(n):
+                if j > 0 and j % sn == 0:
+                    s += "| "
+                s += "{:>{width}} ".format(table[i,j], width=pad)
+            s += "\n"
+        return "Sudoku:\n" + s
+    
+    def display(self):
+        print(self)
+
+    def cost(self):
+        n, sn = self.n, self.sn
+        table = self.table
+        c = 0
+        for row in table:
+            c += cost1(row)
+        for si in range(sn):
+            i0 = sn * si
+            i1 = i0 + sn
+            for sj in range(sn):
+                j0 = sn * sj
+                j1 = j0 + sn
+                c += cost1(table[i0:i1, j0:j1])
+        return c
+
+    def propose_move(self):
+        n = self.n
+        col = np.random.randint(n)
+        while True:
+            r1, r2 = np.random.randint(n), np.random.randint(n)
+            if r1 != r2:
+                break
+        return (col, r1, r2)
+
+    def compute_delta_cost(self, move):
+        col, r1, r2 = move 
+        n, sn = self.n, self.sn
+        table = self.table
+        oldc1 = cost1(table[r1,:])
+        oldc2 = cost1(table[r2,:])
+
+        sj = col // sn
+        si1 = r1 // sn
+        si2 = r2 // sn
+        i10 = sn * si1
+        i11 = i10 + sn
+        i20 = sn * si2
+        i21 = i20 + sn
+        j0 = sn * sj
+        j1 = j0 + sn
+
+        if si1 != si2:
+            olds1 = cost1(table[i10:i11, j0:j1])
+            olds2 = cost1(table[i20:i21, j0:j1])
+        else:
+            olds1, olds2 = 0, 0
+        oldc = oldc1 + oldc2 + olds1 + olds2
+
+        table[[r1,r2],col] = table[[r2,r1],col]
+
+        newc1 = cost1(table[r1,:])
+        newc2 = cost1(table[r2,:])
+
+        if si1 != si2:
+            news1 = cost1(table[i10:i11, j0:j1])
+            news2 = cost1(table[i20:i21, j0:j1])
+        else:
+            news1, news2 = 0, 0
+
+        newc = newc1 + newc2 + news1 + news2
+        delta_c = newc - oldc
+        table[[r1,r2],col] = table[[r2,r1],col]
+        return delta_c
+
+    def accept_move(self, move):
+        col, r1, r2 = move
+        self.table[[r1,r2],col] = self.table[[r2,r1],col]
+
+    def copy(self):
+        return deepcopy(self)
+
+
+sudoku = SudokuCreator(9)
+print(greedy(sudoku, 5, 2000))   # this "greedy" function is saved as another file in this same repository
+
+
+
+
