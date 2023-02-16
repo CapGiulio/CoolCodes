@@ -1,0 +1,53 @@
+# Simulated annealing is an optimization algorithm that explores a wide range of possible solutions to a given problem. 
+# It is inspired by the process of annealing in physics, in which a material is slowly cooled to minimize its energy and reach a stable state.
+# The algorithm gradually decreases the "temperature" of the system (that is, it increases ß, which is 1/temperature), allowing it to escape local 
+# energy minima and converge to the global minimum (hopefully).
+# As can be seen from the code, at the beginning the temperature is high, and the probability to accept a move that increases the cost of the problem
+# is relatively high. 
+# As we gradually decrease the temperature (by increasing the betas) the probability to accept a move with a positive delta cost gets smaller and smaller.
+# During the last annealing step the algorithm is essentially greedy (that is, we only accept moves with a negative delta cost).
+# Clearly this code is useless by itself, it has to be applied to a problem to solve it.
+
+import numpy as np
+
+
+def accept(delta_c, beta):
+    if delta_c <= 0:
+        return True
+    if beta == np.inf:
+        return False
+    p = np.exp(-beta * delta_c)
+    return np.random.rand() < p
+
+def simulated_annealing(probl, anneal_steps = 10, mcmc_steps = 100, beta0 = 0.1, beta1 = 10.0,seed = None, debug_delta_cost = False):       
+    if seed is not None:
+        np.random.seed(seed)
+    beta_list = np.zeros(anneal_steps)
+    beta_list[:-1] = np.linspace(beta0, beta1, anneal_steps - 1)
+    beta_list[-1] = np.inf
+    probl.init_config()
+    c = probl.cost()
+    print(f"initial cost = {c}")
+    best = probl.copy()
+    best_c = c
+    for beta in beta_list:
+        accepted = 0
+        for t in range(mcmc_steps):
+            move = probl.propose_move()
+            delta_c = probl.compute_delta_cost(move)
+            if debug_delta_cost:
+                probl_copy = probl.copy()
+                probl_copy.accept_move(move)
+                assert abs(c + delta_c - probl_copy.cost()) < 1e-10
+            if accept(delta_c, beta):
+                probl.accept_move(move)
+                c += delta_c
+                accepted += 1
+                if c <= best_c:
+                    best_c = c
+                    best = probl.copy()
+        print(f"acc.rate={accepted/mcmc_steps} beta={beta} c={c} [best={best_c}]")
+        if best_c == 0:
+            break
+    print(f"final cost = {best_c}")
+    return best
